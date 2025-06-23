@@ -1,0 +1,15 @@
+# 데이터 파일
+*.csv
+*.xlsx
+*.png
+
+# Python 캐시 파일
+__pycache__/
+*.pyc
+
+# 가상환경 폴더
+venv/
+.venv/
+
+# 운영체제 파일
+.DS_Store 

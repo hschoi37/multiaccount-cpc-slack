@@ -1,0 +1,5 @@
+pandas
+openpyxl
+schedule
+selenium
+slack_sdk

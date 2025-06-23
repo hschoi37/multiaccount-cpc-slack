@@ -10,6 +10,13 @@ from datetime import datetime
 import schedule
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+import json
+
+# --- 디버깅: 모든 환경 변수를 출력 ---
+print("--- Railway의 환경 변수 목록 전체를 출력합니다 ---")
+print(json.dumps(dict(os.environ), indent=2, ensure_ascii=False))
+print("--- 환경 변수 목록 끝 ---")
+
 
 # --- 설정 ---
 # 슬랙 설정
@@ -28,7 +35,10 @@ PASSWORD = os.getenv("PASSWORD")
 
 # --- 환경 변수 확인 ---
 if not all([SLACK_BOT_TOKEN, USERNAME, PASSWORD]):
-    raise ValueError("필수 환경변수(SLACK_BOT_TOKEN, USERNAME, PASSWORD)가 설정되지 않았습니다.")
+    # raise ValueError("필수 환경변수(SLACK_BOT_TOKEN, USERNAME, PASSWORD)가 설정되지 않았습니다.")
+    print("!!! 경고: 필수 환경변수 중 하나 이상이 설정되지 않았습니다 !!!")
+else:
+    print("정상: 모든 필수 환경변수가 설정된 것으로 보입니다.")
 
 # --- 슬랙 메시지 전송 함수 ---
 def send_slack_notification(message):

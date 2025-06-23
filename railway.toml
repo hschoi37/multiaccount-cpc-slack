@@ -1,8 +1,0 @@
-[build]
-# Railway에게 어떤 빌드 시스템을 사용할지 알려줍니다.
-builder = "NIXPACKS"
-
-[nixpacks.pkgs]
-# 여기에 크롬 브라우저와 드라이버를 추가합니다.
-chromium = ""
-chromedriver = "" 

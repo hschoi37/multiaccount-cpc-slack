@@ -10,13 +10,7 @@ from datetime import datetime
 import schedule
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
-import json
-
-# --- 디버깅: 모든 환경 변수를 출력 ---
-print("--- Railway의 환경 변수 목록 전체를 출력합니다 ---")
-print(json.dumps(dict(os.environ), indent=2, ensure_ascii=False))
-print("--- 환경 변수 목록 끝 ---")
-
+import sys
 
 # --- 설정 ---
 # 슬랙 설정
@@ -32,13 +26,6 @@ CSV_FILE = "merchant_cpc_data.csv"
 # 중요: 이 값들은 Railway의 Variables 탭에서 설정합니다.
 USERNAME = os.getenv("USERNAME")
 PASSWORD = os.getenv("PASSWORD")
-
-# --- 환경 변수 확인 ---
-if not all([SLACK_BOT_TOKEN, USERNAME, PASSWORD]):
-    # raise ValueError("필수 환경변수(SLACK_BOT_TOKEN, USERNAME, PASSWORD)가 설정되지 않았습니다.")
-    print("!!! 경고: 필수 환경변수 중 하나 이상이 설정되지 않았습니다 !!!")
-else:
-    print("정상: 모든 필수 환경변수가 설정된 것으로 보입니다.")
 
 # --- 슬랙 메시지 전송 함수 ---
 def send_slack_notification(message):
@@ -195,6 +182,13 @@ def job():
 
 # --- 메인 실행 블록 ---
 if __name__ == "__main__":
+    # 프로그램 시작 시 가장 먼저 환경 변수를 확인합니다.
+    if not all([SLACK_BOT_TOKEN, USERNAME, PASSWORD]):
+        print("!!! 치명적 오류: 필수 환경변수(SLACK_BOT_TOKEN, USERNAME, PASSWORD)가 설정되지 않았습니다. !!!")
+        print("Railway의 Variables 탭에서 변수들이 올바르게 설정되었는지 확인해주세요.")
+        # 에러 로그를 남기고 비정상 종료 (코드를 1로 설정)
+        sys.exit(1)
+        
     print("🚀 CPC 잔액 자동 크롤러가 시작되었습니다.")
     send_slack_notification("🚀 CPC 잔액 자동 크롤러가 시작되었습니다.")
 

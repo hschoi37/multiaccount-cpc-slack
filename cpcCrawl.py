@@ -145,9 +145,10 @@ def run_crawler():
         # 6. 슬랙 메시지 생성 및 전송
         today_data = df_to_save[df_to_save['추출날짜'] == current_date]
         with_balance = today_data[pd.to_numeric(today_data['CPC잔액']) > 0]
+        zero_balance = today_data[pd.to_numeric(today_data['CPC잔액']) == 0]
 
         summary_message = (
-            f"✅ *({current_date}) CPC 잔액 추출 완료*\n\n"
+            f"✅ *({current_date}) CPC 잔액 현황*\n\n"
             f"• 총 {len(today_data)}개 가맹점 데이터 추출\n"
             f"• CPC 잔액 보유 가맹점: *{len(with_balance)}개*\n\n"
             "*CPC 잔액 보유 가맹점 목록:*\n"
@@ -159,7 +160,15 @@ def run_crawler():
                 summary_message += f" - {row['가맹점명']}: {int(float(row['CPC잔액'])):,} RMB\n"
         else:
             summary_message += " - 없음\n"
-            
+
+        # 잔액 소진완료 가맹점 추가
+        summary_message += "\n*CPC 잔액 소진완료 가맹점 목록:*\n"
+        if not zero_balance.empty:
+            for _, row in zero_balance.iterrows():
+                summary_message += f" - {row['가맹점명']}\n"
+        else:
+            summary_message += " - 없음\n"
+        
         send_slack_notification(summary_message)
 
     except Exception as e:

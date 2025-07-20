@@ -72,8 +72,8 @@ def run_crawler_job():
 # 스케줄러 설정
 def setup_scheduler():
     """스케줄러를 설정합니다."""
-    # 매일 오전 9시에 실행
-    schedule.every().day.at("09:00").do(scheduled_job)
+    # 매일 한국시간 오전 9시에 실행 (UTC 기준 00:00)
+    schedule.every().day.at("00:00").do(scheduled_job)
     
     # 스케줄러를 백그라운드에서 실행
     def run_scheduler():
@@ -84,7 +84,7 @@ def setup_scheduler():
     scheduler_thread = threading.Thread(target=run_scheduler)
     scheduler_thread.daemon = True
     scheduler_thread.start()
-    print("스케줄러가 시작되었습니다. 매일 오전 9시에 크롤링이 실행됩니다.")
+    print("스케줄러가 시작되었습니다. 매일 한국시간 오전 9시(UTC 00:00)에 크롤링이 실행됩니다.")
 
 @app.route('/')
 def index():
@@ -115,7 +115,7 @@ def index():
             <div class="info">
                 <h3>서비스 정보</h3>
                 <p><strong>기능:</strong> FuiouPay에서 CPC 잔액을 자동으로 크롤링하여 Slack으로 전송</p>
-                <p><strong>실행 시간:</strong> 매일 오전 9시 (한국시간)</p>
+                <p><strong>실행 시간:</strong> 매일 오전 9시 (한국시간, UTC 00:00)</p>
                 <p><strong>Slack 채널:</strong> #kjg_cpcbalance</p>
                 <p><strong>가맹점 수:</strong> 50개 (3페이지)</p>
             </div>

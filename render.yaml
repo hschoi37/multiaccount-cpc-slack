@@ -3,7 +3,7 @@ services:
     name: kjg-cpc-slack
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+    startCommand: python app.py  # Flask 웹 서버 실행
     envVars:
       - key: SLACK_BOT_TOKEN
         sync: false 

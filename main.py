@@ -98,6 +98,7 @@ def setup_scheduler():
     print("스케줄러가 시작되었습니다. 매일 한국시간 오전 9시(UTC 00:00)에 크롤링이 실행됩니다.")
     print(f"현재 시간: {datetime.now()}")
     print("스케줄러가 백그라운드에서 실행 중입니다...")
+    print("서비스 버전: v1.2 - 안정성 개선됨")
 
 @app.route('/')
 def index():

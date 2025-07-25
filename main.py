@@ -72,19 +72,32 @@ def run_crawler_job():
 # 스케줄러 설정
 def setup_scheduler():
     """스케줄러를 설정합니다."""
-    # 매일 한국시간 오전 9시에 실행 (UTC 기준 00:00)
-    schedule.every().day.at("00:00").do(scheduled_job)
     
-    # 스케줄러를 백그라운드에서 실행
     def run_scheduler():
+        last_run_date = None
         while True:
-            schedule.run_pending()
-            time.sleep(60)  # 1분마다 확인
+            now = datetime.now()
+            current_date = now.date()
+            
+            # 한국시간 오전 9시 (UTC 00:00) 체크
+            if now.hour == 0 and now.minute == 0:
+                # 같은 날 중복 실행 방지
+                if last_run_date != current_date:
+                    print(f"\n--- {now}: 정기 CPC 잔액 크롤링 시작 ---")
+                    run_crawler_job()
+                    last_run_date = current_date
+                    print(f"--- {now}: 작업 완료. 다음 실행은 내일 한국시간 오전 9시입니다. ---")
+                    # 중복 실행 방지를 위해 1분 대기
+                    time.sleep(60)
+            
+            time.sleep(30)  # 30초마다 확인
     
     scheduler_thread = threading.Thread(target=run_scheduler)
     scheduler_thread.daemon = True
     scheduler_thread.start()
     print("스케줄러가 시작되었습니다. 매일 한국시간 오전 9시(UTC 00:00)에 크롤링이 실행됩니다.")
+    print(f"현재 시간: {datetime.now()}")
+    print("스케줄러가 백그라운드에서 실행 중입니다...")
 
 @app.route('/')
 def index():
@@ -132,6 +145,8 @@ def index():
             <div class="info">
                 <h3>최근 실행 기록</h3>
                 <p>서비스가 정상적으로 실행되고 있습니다. 매일 오전 9시에 자동으로 CPC 잔액을 확인하여 Slack으로 전송합니다.</p>
+                <p><strong>마지막 실행:</strong> <span id="lastRun">확인 중...</span></p>
+                <p><strong>다음 실행:</strong> 매일 오전 9시 (한국시간)</p>
             </div>
         </div>
         

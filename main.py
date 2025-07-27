@@ -92,6 +92,16 @@ if __name__ == '__main__':
     # 환경 변수 확인 및 디버깅
     print(f"환경 변수 확인 중...")
     
+    # Railway에서 환경 변수를 직접 설정
+    railway_token = os.getenv("SLACK_BOT_TOKEN")
+    if railway_token:
+        print(f"Railway에서 SLACK_BOT_TOKEN 발견: {railway_token[:10]}...")
+        # 환경 변수를 직접 설정
+        os.environ["SLACK_BOT_TOKEN"] = railway_token
+        print("환경 변수를 직접 설정했습니다.")
+    else:
+        print("Railway에서 SLACK_BOT_TOKEN을 찾을 수 없습니다.")
+    
     # 다양한 환경 변수 이름 시도
     possible_names = [
         "SLACK_BOT_TOKEN",
@@ -142,11 +152,19 @@ if __name__ == '__main__':
         importlib.reload(cpcCrawl)
         from cpcCrawl import SLACK_BOT_TOKEN
     
-    if not SLACK_BOT_TOKEN:
+    # 최종 확인
+    final_token = os.getenv("SLACK_BOT_TOKEN")
+    if not final_token:
         print("!!! 치명적 오류: 필수 환경변수(SLACK_BOT_TOKEN)가 설정되지 않았습니다. !!!")
         print("Railway의 Variables 탭에서 변수들이 올바르게 설정되었는지 확인해주세요.")
         print("시도한 환경 변수 이름들:", possible_names)
+        print("현재 환경 변수 상태:")
+        for key, value in os.environ.items():
+            if 'SLACK' in key or 'TOKEN' in key:
+                print(f"  {key}: {value[:10] if value else 'None'}...")
         sys.exit(1)
+    
+    print(f"최종 토큰 확인: {final_token[:10]}...")
     
     # 스케줄러 시작
     setup_scheduler()

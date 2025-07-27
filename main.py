@@ -3,13 +3,27 @@ import sys
 import threading
 import time
 from datetime import datetime
-import schedule
 
 # cpcCrawl.py의 크롤링 함수들을 직접 import
 from cpcCrawl import run_crawler, send_slack_notification
 
-# 환경 변수 직접 가져오기
-SLACK_BOT_TOKEN = os.getenv("SLACK_TOKEN") or os.getenv("SLACK_BOT_TOKEN")
+# 환경 변수 직접 가져오기 (여러 이름 시도)
+def get_slack_token():
+    """Slack 토큰을 여러 방법으로 시도하여 가져옵니다."""
+    possible_names = [
+        "SLACK_TOKEN",
+        "SLACK_BOT_TOKEN", 
+        "BOT_TOKEN",
+        "TOKEN"
+    ]
+    
+    for name in possible_names:
+        token = os.getenv(name)
+        if token:
+            print(f"토큰 발견: {name}")
+            return token
+    
+    return None
 
 # 크롤링 상태를 저장할 변수
 crawler_status = {
@@ -20,13 +34,6 @@ crawler_status = {
     "message": "",
     "has_error": False
 }
-
-# 스케줄링 작업 함수
-def scheduled_job():
-    """매일 오전 10시에 실행될 작업"""
-    print(f"\n--- {datetime.now()}: 정기 CPC 잔액 크롤링 시작 ---")
-    run_crawler_job()
-    print(f"--- {datetime.now()}: 작업 완료. 다음 실행은 내일 한국시간 오전 10시입니다. ---")
 
 def run_crawler_job():
     """크롤러 작업 실행"""
@@ -44,7 +51,6 @@ def run_crawler_job():
     
     try:
         print("크롤링 작업을 시작합니다...")
-        # cpcCrawl.py의 run_crawler 함수 직접 호출
         run_crawler()
         
         # 완료 상태 업데이트
@@ -88,102 +94,31 @@ def setup_scheduler():
     scheduler_thread.start()
     print("스케줄러가 시작되었습니다. 매일 한국시간 오전 10시(UTC 01:00)에 크롤링이 실행됩니다.")
     print(f"현재 시간: {datetime.now()}")
-    print("스케줄러가 백그라운드에서 실행 중입니다...")
-    print("서비스 버전: v1.4 - Direct Import 모드로 변경")
 
 if __name__ == '__main__':
-    # 환경 변수 확인 및 디버깅
-    print(f"환경 변수 확인 중...")
+    print("🚀 KJG CPC Slack Bot 시작 중...")
     
-    # Railway에서 환경 변수를 직접 설정
-    railway_token = os.getenv("SLACK_BOT_TOKEN")
-    if railway_token:
-        print(f"Railway에서 SLACK_BOT_TOKEN 발견: {railway_token[:10]}...")
-        # 환경 변수를 직접 설정
-        os.environ["SLACK_BOT_TOKEN"] = railway_token
-        print("환경 변수를 직접 설정했습니다.")
-    else:
-        print("Railway에서 SLACK_BOT_TOKEN을 찾을 수 없습니다.")
-    
-    # 다양한 환경 변수 이름 시도
-    possible_names = [
-        "SLACK_BOT_TOKEN",
-        "SLACK_BOT_TOKEN_",
-        "SLACK_TOKEN",
-        "SLACK_TOKEN_",
-        "BOT_TOKEN",
-        "TOKEN"
-    ]
-    
-    found_token = None
-    found_name = None
-    
-    for name in possible_names:
-        token = os.getenv(name)
-        print(f"os.getenv('{name}') 존재 여부: {bool(token)}")
-        if token:
-            found_token = token
-            found_name = name
-            print(f"발견된 토큰: {name} = {token[:10]}...")
-            break
-    
-    # 직접 os.getenv로 확인
-    direct_token = os.getenv("SLACK_BOT_TOKEN")
-    print(f"os.getenv('SLACK_BOT_TOKEN') 존재 여부: {bool(direct_token)}")
-    print(f"os.getenv('SLACK_BOT_TOKEN') 길이: {len(direct_token) if direct_token else 0}")
-    print(f"os.getenv('SLACK_BOT_TOKEN') 시작 부분: {direct_token[:10] if direct_token else 'None'}...")
-    
-    # import된 변수 확인
-    print(f"import된 SLACK_BOT_TOKEN 존재 여부: {bool(SLACK_BOT_TOKEN)}")
-    print(f"import된 SLACK_BOT_TOKEN 길이: {len(SLACK_BOT_TOKEN) if SLACK_BOT_TOKEN else 0}")
-    print(f"import된 SLACK_BOT_TOKEN 시작 부분: {SLACK_BOT_TOKEN[:10] if SLACK_BOT_TOKEN else 'None'}...")
-    
-    # 모든 환경 변수 출력 (디버깅용)
-    print(f"모든 환경 변수:")
-    for key, value in os.environ.items():
-        if 'SLACK' in key or 'TOKEN' in key:
-            print(f"  {key}: {value[:10] if value else 'None'}...")
-    
-    # 발견된 토큰이 있으면 사용
-    if found_token:
-        print(f"발견된 토큰을 사용합니다: {found_name}")
-        # 환경 변수를 직접 설정
-        os.environ["SLACK_BOT_TOKEN"] = found_token
-        # cpcCrawl 모듈 재로드
-        import importlib
-        import cpcCrawl
-        importlib.reload(cpcCrawl)
-        from cpcCrawl import SLACK_BOT_TOKEN
-    
-    # 최종 확인
-    final_token = os.getenv("SLACK_BOT_TOKEN")
-    if not final_token:
-        print("!!! 치명적 오류: 필수 환경변수(SLACK_BOT_TOKEN)가 설정되지 않았습니다. !!!")
-        print("Railway의 Variables 탭에서 변수들이 올바르게 설정되었는지 확인해주세요.")
-        print("시도한 환경 변수 이름들:", possible_names)
-        print("현재 환경 변수 상태:")
-        for key, value in os.environ.items():
-            if 'SLACK' in key or 'TOKEN' in key:
-                print(f"  {key}: {value[:10] if value else 'None'}...")
+    # 환경 변수 확인
+    slack_token = get_slack_token()
+    if not slack_token:
+        print("❌ SLACK_TOKEN 환경 변수가 설정되지 않았습니다.")
+        print("Railway Variables에서 SLACK_TOKEN을 설정해주세요.")
         sys.exit(1)
     
-    print(f"최종 토큰 확인: {final_token[:10]}...")
+    print(f"✅ 토큰 확인 완료: {slack_token[:10]}...")
     
     # 스케줄러 시작
     setup_scheduler()
     
-    # Background Worker 모드: 무한 루프로 실행
-    print("🚀 KJG CPC Slack Bot (Background Worker)이 시작되었습니다.")
-    print("매일 한국시간 오전 10시에 자동으로 CPC 잔액을 확인하여 Slack으로 전송합니다.")
-    
     # 시작 알림 전송
     try:
         send_slack_notification("🚀 KJG CPC Slack Bot이 Railway에서 시작되었습니다!")
-        print("시작 알림을 Slack으로 전송했습니다.")
+        print("✅ 시작 알림을 Slack으로 전송했습니다.")
     except Exception as e:
-        print(f"시작 알림 전송 실패: {e}")
-        print(f"오류 타입: {type(e)}")
-        print(f"오류 상세: {str(e)}")
+        print(f"❌ 시작 알림 전송 실패: {e}")
+    
+    print("🚀 KJG CPC Slack Bot이 정상적으로 시작되었습니다.")
+    print("매일 한국시간 오전 10시에 자동으로 CPC 잔액을 확인하여 Slack으로 전송합니다.")
     
     # 메인 스레드 유지
     try:

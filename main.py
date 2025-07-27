@@ -1,9 +1,12 @@
 import os
 import sys
-import subprocess
 import threading
 import time
 from datetime import datetime
+import schedule
+
+# cpcCrawl.py의 크롤링 함수들을 직접 import
+from cpcCrawl import run_crawler, send_slack_notification, SLACK_BOT_TOKEN
 
 # 크롤링 상태를 저장할 변수
 crawler_status = {
@@ -37,28 +40,16 @@ def run_crawler_job():
     crawler_status["has_error"] = False
     
     try:
-        # 현재 디렉토리에서 cpcCrawl.py 실행
-        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cpcCrawl.py')
-        process = subprocess.Popen([sys.executable, script_path], 
-                          stdout=subprocess.PIPE, 
-                          stderr=subprocess.PIPE,
-                          text=True)
-        
-        # 프로세스 완료 대기
-        stdout, stderr = process.communicate()
+        print("크롤링 작업을 시작합니다...")
+        # cpcCrawl.py의 run_crawler 함수 직접 호출
+        run_crawler()
         
         # 완료 상태 업데이트
         crawler_status["is_running"] = False
         crawler_status["completed"] = True
         crawler_status["end_time"] = time.time()
-        
-        if process.returncode == 0:
-            crawler_status["message"] = "크롤링이 성공적으로 완료되었습니다."
-            print("크롤링이 성공적으로 완료되었습니다.")
-        else:
-            crawler_status["message"] = f"크롤링 중 오류가 발생했습니다.\n{stderr}"
-            crawler_status["has_error"] = True
-            print(f"크롤링 중 오류가 발생했습니다.\n{stderr}")
+        crawler_status["message"] = "크롤링이 성공적으로 완료되었습니다."
+        print("크롤링이 성공적으로 완료되었습니다.")
             
     except Exception as e:
         crawler_status["is_running"] = False
@@ -95,15 +86,28 @@ def setup_scheduler():
     print("스케줄러가 시작되었습니다. 매일 한국시간 오전 10시(UTC 01:00)에 크롤링이 실행됩니다.")
     print(f"현재 시간: {datetime.now()}")
     print("스케줄러가 백그라운드에서 실행 중입니다...")
-    print("서비스 버전: v1.3 - Background Worker 모드로 변경")
+    print("서비스 버전: v1.4 - Direct Import 모드로 변경")
 
 if __name__ == '__main__':
+    # 환경 변수 확인
+    if not SLACK_BOT_TOKEN:
+        print("!!! 치명적 오류: 필수 환경변수(SLACK_BOT_TOKEN)가 설정되지 않았습니다. !!!")
+        print("Railway의 Variables 탭에서 변수들이 올바르게 설정되었는지 확인해주세요.")
+        sys.exit(1)
+    
     # 스케줄러 시작
     setup_scheduler()
     
     # Background Worker 모드: 무한 루프로 실행
     print("🚀 KJG CPC Slack Bot (Background Worker)이 시작되었습니다.")
     print("매일 한국시간 오전 10시에 자동으로 CPC 잔액을 확인하여 Slack으로 전송합니다.")
+    
+    # 시작 알림 전송
+    try:
+        send_slack_notification("🚀 KJG CPC Slack Bot이 Railway에서 시작되었습니다!")
+        print("시작 알림을 Slack으로 전송했습니다.")
+    except Exception as e:
+        print(f"시작 알림 전송 실패: {e}")
     
     # 메인 스레드 유지
     try:

@@ -248,6 +248,10 @@ def run_crawler():
 # --- 메인 실행 블록 (로컬 테스트용) ---
 if __name__ == "__main__":
     # 프로그램 시작 시 가장 먼저 환경 변수를 확인합니다.
+    print(f"cpcCrawl.py - 환경 변수 확인 중...")
+    print(f"SLACK_BOT_TOKEN 존재 여부: {bool(SLACK_BOT_TOKEN)}")
+    print(f"SLACK_BOT_TOKEN 길이: {len(SLACK_BOT_TOKEN) if SLACK_BOT_TOKEN else 0}")
+    
     if not SLACK_BOT_TOKEN:
         print("!!! 치명적 오류: 필수 환경변수(SLACK_BOT_TOKEN)가 설정되지 않았습니다. !!!")
         print("Railway의 Variables 탭에서 변수들이 올바르게 설정되었는지 확인해주세요.")

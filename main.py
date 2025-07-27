@@ -89,7 +89,12 @@ def setup_scheduler():
     print("서비스 버전: v1.4 - Direct Import 모드로 변경")
 
 if __name__ == '__main__':
-    # 환경 변수 확인
+    # 환경 변수 확인 및 디버깅
+    print(f"환경 변수 확인 중...")
+    print(f"SLACK_BOT_TOKEN 존재 여부: {bool(SLACK_BOT_TOKEN)}")
+    print(f"SLACK_BOT_TOKEN 길이: {len(SLACK_BOT_TOKEN) if SLACK_BOT_TOKEN else 0}")
+    print(f"SLACK_BOT_TOKEN 시작 부분: {SLACK_BOT_TOKEN[:10] if SLACK_BOT_TOKEN else 'None'}...")
+    
     if not SLACK_BOT_TOKEN:
         print("!!! 치명적 오류: 필수 환경변수(SLACK_BOT_TOKEN)가 설정되지 않았습니다. !!!")
         print("Railway의 Variables 탭에서 변수들이 올바르게 설정되었는지 확인해주세요.")
@@ -108,6 +113,8 @@ if __name__ == '__main__':
         print("시작 알림을 Slack으로 전송했습니다.")
     except Exception as e:
         print(f"시작 알림 전송 실패: {e}")
+        print(f"오류 타입: {type(e)}")
+        print(f"오류 상세: {str(e)}")
     
     # 메인 스레드 유지
     try:

@@ -91,9 +91,23 @@ def setup_scheduler():
 if __name__ == '__main__':
     # 환경 변수 확인 및 디버깅
     print(f"환경 변수 확인 중...")
-    print(f"SLACK_BOT_TOKEN 존재 여부: {bool(SLACK_BOT_TOKEN)}")
-    print(f"SLACK_BOT_TOKEN 길이: {len(SLACK_BOT_TOKEN) if SLACK_BOT_TOKEN else 0}")
-    print(f"SLACK_BOT_TOKEN 시작 부분: {SLACK_BOT_TOKEN[:10] if SLACK_BOT_TOKEN else 'None'}...")
+    
+    # 직접 os.getenv로 확인
+    direct_token = os.getenv("SLACK_BOT_TOKEN")
+    print(f"os.getenv('SLACK_BOT_TOKEN') 존재 여부: {bool(direct_token)}")
+    print(f"os.getenv('SLACK_BOT_TOKEN') 길이: {len(direct_token) if direct_token else 0}")
+    print(f"os.getenv('SLACK_BOT_TOKEN') 시작 부분: {direct_token[:10] if direct_token else 'None'}...")
+    
+    # import된 변수 확인
+    print(f"import된 SLACK_BOT_TOKEN 존재 여부: {bool(SLACK_BOT_TOKEN)}")
+    print(f"import된 SLACK_BOT_TOKEN 길이: {len(SLACK_BOT_TOKEN) if SLACK_BOT_TOKEN else 0}")
+    print(f"import된 SLACK_BOT_TOKEN 시작 부분: {SLACK_BOT_TOKEN[:10] if SLACK_BOT_TOKEN else 'None'}...")
+    
+    # 모든 환경 변수 출력 (디버깅용)
+    print(f"모든 환경 변수:")
+    for key, value in os.environ.items():
+        if 'SLACK' in key or 'TOKEN' in key:
+            print(f"  {key}: {value[:10] if value else 'None'}...")
     
     if not SLACK_BOT_TOKEN:
         print("!!! 치명적 오류: 필수 환경변수(SLACK_BOT_TOKEN)가 설정되지 않았습니다. !!!")

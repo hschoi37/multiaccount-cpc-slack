@@ -250,7 +250,7 @@ def job():
     """스케줄러에 의해 실행될 작업"""
     print(f"\n--- {datetime.now()}: 정기 CPC 잔액 크롤링 시작 ---")
     run_crawler()
-    print(f"--- {datetime.now()}: 작업 완료. 다음 실행은 내일 아침 9시입니다. ---")
+    print(f"--- {datetime.now()}: 작업 완료. 다음 실행은 내일 아침 10시입니다. ---")
 
 # --- 메인 실행 블록 ---
 if __name__ == "__main__":
@@ -264,8 +264,8 @@ if __name__ == "__main__":
     print("🚀 CPC 잔액 자동 크롤러가 시작되었습니다.")
     send_slack_notification("🚀 CPC 잔액 자동 크롤러가 시작되었습니다.")
 
-    # 매일 오전 9시에 job 함수를 실행하도록 스케줄 설정
-    schedule.every().day.at("09:00").do(job)
+    # 매일 오전 10시에 job 함수를 실행하도록 스케줄 설정
+    schedule.every().day.at("10:00").do(job)
     
     # 프로그램 시작 시 1회 즉시 실행 (테스트용)
     print(">> 프로그램 시작 기념으로 작업을 1회 즉시 실행합니다...")

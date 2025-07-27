@@ -4,7 +4,7 @@ FuiouPay 웹사이트에서 가맹점들의 CPC 잔액을 자동으로 크롤링
 
 ## 기능
 
-- 매일 오전 9시(한국시간)에 자동으로 FuiouPay에 로그인
+- 매일 오전 10시(한국시간)에 자동으로 FuiouPay에 로그인
 - **모든 페이지의 가맹점 데이터를 완전히 수집** (현재 50개 가맹점, 3페이지)
 - **신규 가맹점 자동 감지 및 알림**
 - Slack의 `#kjg_cpcbalance` 채널로 결과 전송
@@ -15,7 +15,7 @@ FuiouPay 웹사이트에서 가맹점들의 CPC 잔액을 자동으로 크롤링
 
 ### 환경 변수
 
-Render에서 다음 환경 변수를 설정해야 합니다:
+Railway에서 다음 환경 변수를 설정해야 합니다:
 
 - `SLACK_BOT_TOKEN`: Slack Bot Token (필수)
 
@@ -27,10 +27,10 @@ Render에서 다음 환경 변수를 설정해야 합니다:
 
 ## 배포
 
-### Render 배포
+### Railway 배포
 
-1. GitHub 저장소를 Render에 연결
-2. `render.yaml` 파일을 사용하여 자동 배포
+1. GitHub 저장소를 Railway에 연결
+2. `railway.json` 파일을 사용하여 자동 배포
 3. 환경 변수 `SLACK_BOT_TOKEN` 설정
 
 ### 로컬 실행
@@ -49,10 +49,11 @@ python cpcCrawl.py
 ## 파일 구조
 
 - `cpcCrawl.py`: 메인 크롤링 스크립트
+- `main.py`: 백그라운드 워커 스크립트
 - `app.py`: Flask 웹 애플리케이션 (수동 실행용)
 - `requirements.txt`: Python 의존성
 - `Dockerfile`: Docker 컨테이너 설정
-- `render.yaml`: Render 배포 설정
+- `railway.json`: Railway 배포 설정
 
 ## 출력 형식
 
@@ -86,4 +87,5 @@ CPC 잔액 소진완료 가맹점 목록:
 - **전체 페이지 크롤링**: 모든 페이지를 자동으로 순회하여 완전한 데이터 수집
 - **신규 가맹점 감지**: 기존 데이터와 비교하여 신규 가맹점 자동 감지
 - **안정적인 페이지 이동**: JavaScript를 사용한 안정적인 페이지 네비게이션
-- **상세한 로깅**: 각 페이지별 추출 현황을 상세히 기록 
+- **상세한 로깅**: 각 페이지별 추출 현황을 상세히 기록
+- **Railway 배포**: Render에서 Railway로 마이그레이션 

@@ -15,7 +15,7 @@ import sys
 # --- 설정 ---
 # 슬랙 설정
 # 중요: 이 값들은 Railway의 Variables 탭에서 설정합니다.
-SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+SLACK_BOT_TOKEN = os.getenv("SLACK_TOKEN") or os.getenv("SLACK_BOT_TOKEN")
 SLACK_CHANNEL = "#kjg_cpcbalance"
 
 # 엑셀/CSV 파일 경로 설정

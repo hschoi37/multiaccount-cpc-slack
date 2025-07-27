@@ -6,7 +6,10 @@ from datetime import datetime
 import schedule
 
 # cpcCrawl.py의 크롤링 함수들을 직접 import
-from cpcCrawl import run_crawler, send_slack_notification, SLACK_BOT_TOKEN
+from cpcCrawl import run_crawler, send_slack_notification
+
+# 환경 변수 직접 가져오기
+SLACK_BOT_TOKEN = os.getenv("SLACK_TOKEN") or os.getenv("SLACK_BOT_TOKEN")
 
 # 크롤링 상태를 저장할 변수
 crawler_status = {

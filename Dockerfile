@@ -29,4 +29,4 @@ COPY . .
 
 # 6. 실행 명령어
 # 컨테이너가 시작될 때 실행할 기본 명령어를 설정합니다.
-CMD ["python", "cpcCrawl.py"] 
+CMD ["python", "main.py"] 

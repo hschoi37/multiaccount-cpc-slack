@@ -35,31 +35,79 @@ crawler_status = {
     "has_error": False
 }
 
+# 계정 정보 리스트
+accounts = [
+    {
+        "name": "kjg",
+        "username": "E20250124156285",
+        "password": "1234",
+        "slack_channel": "#kjg_cpcbalance",
+        "excel_file": "merchant_cpc_data_kjg.xlsx",
+        "csv_file": "merchant_cpc_data_kjg.csv"
+    },
+    {
+        "name": "htag",
+        "username": "E20240626154518",
+        "password": "1234",
+        "slack_channel": "#htag_cpcbalance",
+        "excel_file": "merchant_cpc_data_htag.xlsx",
+        "csv_file": "merchant_cpc_data_htag.csv"
+    },
+    {
+        "name": "gpr",
+        "username": "E20250124156283",
+        "password": "1234",
+        "slack_channel": "#gpr_cpcbalance",
+        "excel_file": "merchant_cpc_data_gpr.xlsx",
+        "csv_file": "merchant_cpc_data_gpr.csv"
+    },
+    {
+        "name": "smd",
+        "username": "E20220210100006",
+        "password": "1234",
+        "slack_channel": "#smd_cpcbalance",
+        "excel_file": "merchant_cpc_data_smd.xlsx",
+        "csv_file": "merchant_cpc_data_smd.csv"
+    },
+    {
+        "name": "zen",
+        "username": "E20250124156292",
+        "password": "1234",
+        "slack_channel": "#zen_cpcbalance",
+        "excel_file": "merchant_cpc_data_zen.xlsx",
+        "csv_file": "merchant_cpc_data_zen.csv"
+    }
+]
+
 def run_crawler_job():
-    """크롤러 작업 실행"""
+    """모든 계정에 대해 크롤러 작업 실행"""
     if crawler_status["is_running"]:
         print("크롤러가 이미 실행 중입니다.")
         return
-    
-    # 상태 초기화
     crawler_status["is_running"] = True
     crawler_status["completed"] = False
     crawler_status["start_time"] = time.time()
     crawler_status["end_time"] = None
     crawler_status["message"] = "크롤러가 실행 중입니다..."
     crawler_status["has_error"] = False
-    
     try:
         print("크롤링 작업을 시작합니다...")
-        run_crawler()
-        
-        # 완료 상태 업데이트
+        for acc in accounts:
+            print(f"\n==== [{acc['name']}] 계정 크롤링 시작 ====")
+            from cpcCrawl import run_crawler
+            run_crawler(
+                acc["username"],
+                acc["password"],
+                slack_token,
+                acc["slack_channel"],
+                acc["excel_file"],
+                acc["csv_file"]
+            )
         crawler_status["is_running"] = False
         crawler_status["completed"] = True
         crawler_status["end_time"] = time.time()
-        crawler_status["message"] = "크롤링이 성공적으로 완료되었습니다."
-        print("크롤링이 성공적으로 완료되었습니다.")
-            
+        crawler_status["message"] = "모든 계정 크롤링이 성공적으로 완료되었습니다."
+        print("모든 계정 크롤링이 성공적으로 완료되었습니다.")
     except Exception as e:
         crawler_status["is_running"] = False
         crawler_status["completed"] = True
@@ -110,18 +158,20 @@ if __name__ == '__main__':
     # 스케줄러 시작
     setup_scheduler()
     
-    # 시작 알림 전송
+    # 시작 알림 전송 (모든 계정별 채널에)
     try:
-        send_slack_notification("🚀 KJG CPC Slack Bot이 Railway에서 시작되었습니다!")
+        from cpcCrawl import send_slack_notification
+        for acc in accounts:
+            send_slack_notification(f"🚀 {acc['name'].upper()} CPC Slack Bot이 Railway에서 시작되었습니다!", slack_token, acc["slack_channel"])
         print("✅ 시작 알림을 Slack으로 전송했습니다.")
     except Exception as e:
         print(f"❌ 시작 알림 전송 실패: {e}")
     
     print("🚀 KJG CPC Slack Bot이 정상적으로 시작되었습니다.")
-    print("매일 한국시간 오전 10시에 자동으로 CPC 잔액을 확인하여 Slack으로 전송합니다.")
+    print("매일 한국시간 오전 10시에 자동으로 모든 계정의 CPC 잔액을 확인하여 Slack으로 전송합니다.")
     
     # 즉시 크롤링 실행 (테스트용)
-    print("🔍 즉시 크롤링을 실행합니다...")
+    print("🔍 즉시 모든 계정 크롤링을 실행합니다...")
     try:
         run_crawler_job()
         print("✅ 즉시 크롤링이 완료되었습니다.")

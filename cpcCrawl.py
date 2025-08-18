@@ -11,6 +11,7 @@ import schedule
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 import sys
+import chromedriver_binary  # 이 줄을 selenium import 위에 추가
 
 # --- 설정 ---
 # 슬랙 설정

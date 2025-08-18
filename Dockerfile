@@ -22,14 +22,6 @@ RUN wget -O- https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor >
     apt-get update && \
     apt-get install -y google-chrome-stable
 
-# chromedriver 설치 (Chrome 버전에 맞게 자동 설치)
-RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1) && \
-    DRIVER_VERSION=$(wget -qO- "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}") && \
-    wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${DRIVER_VERSION}/chromedriver_linux64.zip" && \
-    unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
-    rm /tmp/chromedriver.zip && \
-    chmod +x /usr/local/bin/chromedriver
-
 # 파이썬 패키지 설치
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt

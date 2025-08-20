@@ -3,6 +3,10 @@ import sys
 import threading
 import time
 from datetime import datetime
+from flask import Flask, jsonify
+
+# Flask 앱 생성
+app = Flask(__name__)
 
 # cpcCrawl.py의 크롤링 함수들을 직접 import
 from cpcCrawl import run_crawler, send_slack_notification
@@ -146,6 +150,60 @@ def setup_scheduler():
     print("스케줄러가 시작되었습니다. 매일 한국시간 오전 10시(UTC 01:00)에 크롤링이 실행됩니다.")
     print(f"현재 시간: {datetime.now()}")
 
+# Flask 라우트 정의
+@app.route('/')
+def index():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>KJG CPC Slack Bot</title>
+        <meta charset="utf-8">
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
+            .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h1 { color: #333; text-align: center; }
+            .status { padding: 15px; margin: 20px 0; border-radius: 5px; }
+            .status.running { background-color: #e3f2fd; border: 1px solid #2196f3; }
+            .status.completed { background-color: #e8f5e8; border: 1px solid #4caf50; }
+            .status.error { background-color: #ffebee; border: 1px solid #f44336; }
+            .info { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🚀 KJG CPC Slack Bot</h1>
+            
+            <div class="info">
+                <h3>서비스 정보</h3>
+                <p><strong>기능:</strong> FuiouPay에서 CPC 잔액을 자동으로 크롤링하여 Slack으로 전송</p>
+                <p><strong>실행 시간:</strong> 매일 한국시간 오전 10시 (UTC 01:00)</p>
+                <p><strong>계정 수:</strong> 5개 (kjg, htag, gpr, smd, zen)</p>
+                <p><strong>상태:</strong> 정상 실행 중</p>
+            </div>
+            
+            <div class="info">
+                <h3>최근 실행 기록</h3>
+                <p>서비스가 정상적으로 실행되고 있습니다. 매일 한국시간 오전 10시에 자동으로 CPC 잔액을 확인하여 Slack으로 전송합니다.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+@app.route('/health')
+def health():
+    return jsonify({
+        "status": "healthy", 
+        "timestamp": datetime.now().isoformat(),
+        "service": "KJG CPC Slack Bot",
+        "crawler_status": crawler_status
+    })
+
+@app.route('/status')
+def status():
+    return jsonify(crawler_status)
+
 if __name__ == '__main__':
     print("🚀 KJG CPC Slack Bot 시작 중...")
     
@@ -181,9 +239,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"❌ 즉시 크롤링 실패: {e}")
     
-    # 메인 스레드 유지
-    try:
-        while True:
-            time.sleep(60)  # 1분마다 체크
-    except KeyboardInterrupt:
-        print("서비스가 종료됩니다.") 
+    # Flask 서버 시작 (Railway 헬스체크용)
+    port = int(os.environ.get('PORT', 5000))
+    print(f"🌐 웹 서버가 포트 {port}에서 시작됩니다.")
+    app.run(debug=False, host='0.0.0.0', port=port) 

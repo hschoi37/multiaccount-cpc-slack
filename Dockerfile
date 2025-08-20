@@ -16,18 +16,20 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-0 \
     --no-install-recommends
 
-# Chrome 139 버전 설치 (특정 버전으로 고정)
+# Chrome 최신 안정 버전 설치
 RUN wget -O- https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-linux-signing-keyring.gpg && \
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-linux-signing-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
     apt-get update && \
-    apt-get install -y google-chrome-stable=139.0.7258.127-1 && \
-    apt-mark hold google-chrome-stable
+    apt-get install -y google-chrome-stable
 
-# ChromeDriver 139.0.7258.68 설치 (Chrome 139과 호환되는 버전)
-RUN wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/139.0.7258.68/chromedriver_linux64.zip && \
+# ChromeDriver 자동 설치 (Chrome 버전과 호환되는 최신 버전)
+RUN CHROME_VERSION=$(google-chrome --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+') && \
+    CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION%%.*}") && \
+    wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" && \
     unzip /tmp/chromedriver.zip -d /usr/local/bin/ && \
     chmod +x /usr/local/bin/chromedriver && \
-    rm /tmp/chromedriver.zip
+    rm /tmp/chromedriver.zip && \
+    echo "Chrome version: $CHROME_VERSION, ChromeDriver version: $CHROMEDRIVER_VERSION"
 
 # 파이썬 패키지 설치
 COPY requirements.txt .

@@ -4,3 +4,4 @@ schedule
 selenium
 slack_sdk
 webdriver-manager
+flask

@@ -125,17 +125,20 @@ def setup_scheduler():
             now = datetime.now()
             current_date = now.date()
             
-            # 한국시간 오전 10시 (UTC 01:00) 체크
+            # 한국시간 오전 10시 (UTC 01:00) 체크 - 더 정확한 시간 체크
             if now.hour == 1 and now.minute == 0:
                 # 같은 날 중복 실행 방지
                 if last_run_date != current_date:
                     print(f"\n--- {now}: 정기 CPC 잔액 크롤링 시작 ---")
-                    run_crawler_job()
+                    try:
+                        run_crawler_job()
+                        print(f"--- {now}: 작업 완료. 다음 실행은 내일 한국시간 오전 10시입니다. ---")
+                    except Exception as e:
+                        print(f"--- {now}: 스케줄된 작업 실행 중 오류 발생: {e} ---")
                     last_run_date = current_date
-                    print(f"--- {now}: 작업 완료. 다음 실행은 내일 한국시간 오전 10시입니다. ---")
                     # 중복 실행 방지를 위해 1분 대기
                     time.sleep(60)
-            time.sleep(30)  # 30초마다 확인
+            time.sleep(10)  # 10초마다 확인 (더 정확한 시간 체크)
     
     scheduler_thread = threading.Thread(target=run_scheduler)
     scheduler_thread.daemon = True

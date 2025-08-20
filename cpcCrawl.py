@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
@@ -11,7 +12,8 @@ import schedule
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 import sys
-import chromedriver_binary  # 이 줄을 selenium import 위에 추가
+# ChromeDriver 경로 설정 (Dockerfile에서 설치한 경로 사용)
+CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver"
 
 # --- 설정 ---
 # 슬랙 설정
@@ -52,7 +54,8 @@ def run_crawler(username, password, slack_token, slack_channel, excel_file, csv_
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option("useAutomationExtension", False)
-    driver = webdriver.Chrome(options=chrome_options)
+    service = Service(executable_path=CHROMEDRIVER_PATH)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
     try:

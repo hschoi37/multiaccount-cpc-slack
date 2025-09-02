@@ -4,6 +4,7 @@ import threading
 import time
 from datetime import datetime
 from flask import Flask, jsonify
+import schedule
 
 # Flask 앱 생성
 app = Flask(__name__)
@@ -123,32 +124,20 @@ def run_crawler_job():
 # 스케줄러 설정
 def setup_scheduler():
     """스케줄러를 설정합니다."""
+    # schedule 라이브러리를 사용한 더 안정적인 스케줄링
+    schedule.every().day.at("01:00").do(run_crawler_job)
+    
     def run_scheduler():
-        last_run_date = None
         while True:
-            now = datetime.now()
-            current_date = now.date()
-            
-            # 한국시간 오전 10시 (UTC 01:00) 체크 - 더 정확한 시간 체크
-            if now.hour == 1 and now.minute == 0:
-                # 같은 날 중복 실행 방지
-                if last_run_date != current_date:
-                    print(f"\n--- {now}: 정기 CPC 잔액 크롤링 시작 ---")
-                    try:
-                        run_crawler_job()
-                        print(f"--- {now}: 작업 완료. 다음 실행은 내일 한국시간 오전 10시입니다. ---")
-                    except Exception as e:
-                        print(f"--- {now}: 스케줄된 작업 실행 중 오류 발생: {e} ---")
-                    last_run_date = current_date
-                    # 중복 실행 방지를 위해 1분 대기
-                    time.sleep(60)
-            time.sleep(10)  # 10초마다 확인 (더 정확한 시간 체크)
+            schedule.run_pending()
+            time.sleep(60)  # 1분마다 스케줄 확인
     
     scheduler_thread = threading.Thread(target=run_scheduler)
     scheduler_thread.daemon = True
     scheduler_thread.start()
     print("스케줄러가 시작되었습니다. 매일 한국시간 오전 10시(UTC 01:00)에 크롤링이 실행됩니다.")
     print(f"현재 시간: {datetime.now()}")
+    print("다음 예정된 실행:", schedule.next_run())
 
 # Flask 라우트 정의
 @app.route('/')
@@ -204,6 +193,22 @@ def health():
 def status():
     return jsonify(crawler_status)
 
+@app.route('/run-now')
+def run_now():
+    """수동으로 크롤링을 실행하는 엔드포인트"""
+    if crawler_status["is_running"]:
+        return jsonify({
+            "status": "error",
+            "message": "크롤러가 이미 실행 중입니다."
+        })
+    
+    # 별도 스레드에서 실행
+    threading.Thread(target=run_crawler_job).start()
+    return jsonify({
+        "status": "success", 
+        "message": "크롤링 작업이 시작되었습니다."
+    })
+
 if __name__ == '__main__':
     print("🚀 KJG CPC Slack Bot 시작 중...")
     
@@ -231,13 +236,7 @@ if __name__ == '__main__':
     print("🚀 KJG CPC Slack Bot이 정상적으로 시작되었습니다.")
     print("매일 한국시간 오전 10시에 자동으로 모든 계정의 CPC 잔액을 확인하여 Slack으로 전송합니다.")
     
-    # 즉시 크롤링 실행 (테스트용)
-    print("🔍 즉시 모든 계정 크롤링을 실행합니다...")
-    try:
-        run_crawler_job()
-        print("✅ 즉시 크롤링이 완료되었습니다.")
-    except Exception as e:
-        print(f"❌ 즉시 크롤링 실패: {e}")
+    # 테스트용 즉시 실행 코드는 제거됨 (정기 스케줄링만 사용)
     
     # Flask 서버 시작 (Railway 헬스체크용)
     port = int(os.environ.get('PORT', 5000))

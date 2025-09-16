@@ -51,8 +51,20 @@ def run_crawler(username, password, slack_token, slack_channel, excel_file, csv_
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("--disable-web-security")
+    chrome_options.add_argument("--allow-running-insecure-content")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-plugins")
+    chrome_options.add_argument("--disable-images")
+    # chrome_options.add_argument("--disable-javascript")  # 로그인에 필요하므로 주석 처리
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option("useAutomationExtension", False)
+    chrome_options.add_experimental_option("prefs", {
+        "profile.default_content_setting_values.notifications": 2,
+        "profile.default_content_settings.popups": 0,
+        "profile.managed_default_content_settings.images": 2
+    })
     service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
@@ -63,9 +75,43 @@ def run_crawler(username, password, slack_token, slack_channel, excel_file, csv_
         driver.get("https://web.fuioupay.co.kr/login?returnUrl=/index")
         time.sleep(3)
         print(f"[{username}] 로그인 시도...")
-        driver.execute_script(f'document.getElementById("username").value = "{username}";')
-        driver.execute_script(f'document.getElementById("password").value = "{password}";')
-        driver.execute_script('document.getElementById("btn-login").click();')
+        
+        # 더 안전한 로그인 방식
+        try:
+            # 먼저 일반적인 방식으로 시도
+            username_field = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "username"))
+            )
+            password_field = driver.find_element(By.ID, "password")
+            login_button = driver.find_element(By.ID, "btn-login")
+            
+            username_field.clear()
+            username_field.send_keys(username)
+            password_field.clear()
+            password_field.send_keys(password)
+            login_button.click()
+            
+        except Exception as e:
+            print(f"[{username}] 일반 로그인 방식 실패, 대안 방식 시도: {e}")
+            try:
+                # 대안 1: name 속성으로 찾기
+                username_field = driver.find_element(By.CSS_SELECTOR, "input[name='username']")
+                password_field = driver.find_element(By.CSS_SELECTOR, "input[name='password']")
+                login_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
+                
+                username_field.clear()
+                username_field.send_keys(username)
+                password_field.clear()
+                password_field.send_keys(password)
+                login_button.click()
+                
+            except Exception as e2:
+                print(f"[{username}] 대안 1 실패, JavaScript 방식 시도: {e2}")
+                # 대안 2: JavaScript 실행
+                driver.execute_script(f'document.querySelector("input[name=\'username\']").value = "{username}";')
+                driver.execute_script(f'document.querySelector("input[name=\'password\']").value = "{password}";')
+                driver.execute_script('document.querySelector("button[type=\'submit\']").click();')
+        
         time.sleep(5)
         if "login" in driver.current_url:
             raise Exception("로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.")
@@ -78,15 +124,19 @@ def run_crawler(username, password, slack_token, slack_channel, excel_file, csv_
         print(f"[{username}] 계약 페이지 접속 완료, 데이터 추출 시작...")
         # 3. 전체 페이지 수 확인
         wait = WebDriverWait(driver, 10)
-        pagination = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "pagination")))
-        page_links = pagination.find_elements(By.TAG_NAME, "a")
-        page_numbers = []
-        for link in page_links:
-            text = link.text.strip()
-            if text.isdigit():
-                page_numbers.append(int(text))
-        total_pages = max(page_numbers) if page_numbers else 1
-        print(f"[{username}] 총 {total_pages}페이지 확인됨")
+        try:
+            pagination = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "pagination")))
+            page_links = pagination.find_elements(By.TAG_NAME, "a")
+            page_numbers = []
+            for link in page_links:
+                text = link.text.strip()
+                if text.isdigit():
+                    page_numbers.append(int(text))
+            total_pages = max(page_numbers) if page_numbers else 1
+            print(f"[{username}] 총 {total_pages}페이지 확인됨")
+        except Exception as e:
+            print(f"[{username}] 페이지네이션 찾기 실패, 1페이지로 가정: {e}")
+            total_pages = 1
         # 4. 모든 페이지 데이터 추출
         all_merchant_data = []
         new_merchants = []
@@ -101,27 +151,44 @@ def run_crawler(username, password, slack_token, slack_channel, excel_file, csv_
                     print(f"페이지 {current_page}로 이동 실패: {e}")
                     continue
             try:
-                table = wait.until(EC.presence_of_element_located((By.TAG_NAME, "table")))
+                # 테이블 찾기 (여러 방법 시도)
+                table = None
+                try:
+                    table = wait.until(EC.presence_of_element_located((By.TAG_NAME, "table")))
+                except:
+                    # 대안: 클래스명으로 찾기
+                    table = driver.find_element(By.CSS_SELECTOR, "table.table, table.data-table, .table")
+                
                 rows = table.find_elements(By.TAG_NAME, "tr")
                 page_merchants = []
+                
                 for row in rows[1:]: # 헤더 제외
-                    cells = row.find_elements(By.TAG_NAME, "td")
-                    if len(cells) >= 6:
-                        merchant_name = cells[2].text.strip()
-                        cpc_balance = cells[5].text.replace(",", "")
-                        if merchant_name:
-                            merchant_data = {
-                                "가맹점명": merchant_name,
-                                "CPC잔액": cpc_balance,
-                                "페이지": current_page,
-                                "추출날짜": current_date
-                            }
-                            all_merchant_data.append(merchant_data)
-                            page_merchants.append(merchant_name)
-                            print(f"  - {merchant_name}: {cpc_balance} RMB")
+                    try:
+                        cells = row.find_elements(By.TAG_NAME, "td")
+                        if len(cells) >= 6:
+                            merchant_name = cells[2].text.strip()
+                            cpc_balance = cells[5].text.replace(",", "").replace("RMB", "").strip()
+                            
+                            # 빈 값 체크
+                            if merchant_name and merchant_name != "":
+                                merchant_data = {
+                                    "가맹점명": merchant_name,
+                                    "CPC잔액": cpc_balance if cpc_balance else "0.00",
+                                    "페이지": current_page,
+                                    "추출날짜": current_date
+                                }
+                                all_merchant_data.append(merchant_data)
+                                page_merchants.append(merchant_name)
+                                print(f"  - {merchant_name}: {cpc_balance} RMB")
+                    except Exception as cell_error:
+                        print(f"  행 데이터 처리 실패: {cell_error}")
+                        continue
+                        
                 print(f"  페이지 {current_page}에서 {len(page_merchants)}개 가맹점 추출")
             except Exception as e:
                 print(f"페이지 {current_page} 데이터 추출 실패: {e}")
+                # 스크린샷 저장
+                driver.save_screenshot(f"error_page_{current_page}_{username}.png")
                 continue
         print(f"\n[{username}] 총 {len(all_merchant_data)}개 가맹점 데이터 추출 완료")
         # 5. 기존 데이터와 비교하여 신규 가맹점 확인
@@ -196,7 +263,11 @@ def run_crawler(username, password, slack_token, slack_channel, excel_file, csv_
         send_slack_notification(summary_message, slack_token, slack_channel)
     except Exception as e:
         print(f"[{username}] 오류 발생: {e}")
-        error_message = f"❌ *CPC 잔액 크롤링 중 오류 발생* ❌\n\n`{e}`"
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"[{username}] 상세 오류 정보:\n{error_details}")
+        
+        error_message = f"❌ *CPC 잔액 크롤링 중 오류 발생* ❌\n\n`{e}`\n\n상세 정보: `{error_details[:500]}...`"
         send_slack_notification(error_message, slack_token, slack_channel)
         driver.save_screenshot(f"error_screenshot_{username}.png")
         print(f"에러 스크린샷을 'error_screenshot_{username}.png'에 저장했습니다.")

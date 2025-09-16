@@ -65,7 +65,13 @@ def run_crawler(username, password, slack_token, slack_channel, excel_file, csv_
         "profile.default_content_settings.popups": 0,
         "profile.managed_default_content_settings.images": 2
     })
-    service = Service(executable_path=ChromeDriverManager().install())
+    # ChromeDriver 경로 설정 (Railway 환경 고려)
+    try:
+        # 먼저 시스템에 설치된 ChromeDriver 사용 시도
+        service = Service(executable_path="/usr/local/bin/chromedriver")
+    except:
+        # fallback: webdriver-manager 사용
+        service = Service(executable_path=ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 

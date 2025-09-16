@@ -35,17 +35,17 @@ RUN wget -O- https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor >
     apt-get update && \
     apt-get install -y google-chrome-stable
 
-# ChromeDriver 설치 (최신 방식)
-RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1-3) && \
+# ChromeDriver 설치 (새로운 API 사용)
+RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}') && \
     CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_${CHROME_VERSION}") && \
     if [ -z "$CHROMEDRIVER_VERSION" ]; then \
-        CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}"); \
+        CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_STABLE"); \
     fi && \
-    wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" && \
+    wget -O /tmp/chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip" && \
     unzip /tmp/chromedriver.zip -d /tmp/ && \
-    mv /tmp/chromedriver /usr/local/bin/chromedriver && \
+    mv /tmp/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
     chmod +x /usr/local/bin/chromedriver && \
-    rm /tmp/chromedriver.zip
+    rm -rf /tmp/chromedriver.zip /tmp/chromedriver-linux64
 
 # 파이썬 패키지 설치
 COPY requirements.txt .

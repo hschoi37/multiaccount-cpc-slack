@@ -56,22 +56,33 @@ def run_crawler(username, password, slack_token, slack_channel, excel_file, csv_
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-plugins")
     chrome_options.add_argument("--disable-images")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.add_argument("--window-size=1920,1080")
     # chrome_options.add_argument("--disable-javascript")  # 로그인에 필요하므로 주석 처리
-    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option("useAutomationExtension", False)
     chrome_options.add_experimental_option("prefs", {
         "profile.default_content_setting_values.notifications": 2,
         "profile.default_content_settings.popups": 0,
-        "profile.managed_default_content_settings.images": 2
+        "profile.managed_default_content_settings.images": 2,
+        "profile.default_content_setting_values.media_stream": 2
     })
     # ChromeDriver 경로 설정 (Railway 환경 고려)
     try:
-        # 먼저 시스템에 설치된 ChromeDriver 사용 시도
-        service = Service(executable_path="/usr/local/bin/chromedriver")
-    except:
-        # fallback: webdriver-manager 사용
+        # 먼저 webdriver-manager로 최신 버전 다운로드 시도
         service = Service(executable_path=ChromeDriverManager().install())
+        print(f"[{username}] webdriver-manager로 ChromeDriver 설치됨")
+    except Exception as e:
+        print(f"[{username}] webdriver-manager 실패: {e}")
+        try:
+            # fallback: 시스템에 설치된 ChromeDriver 사용
+            service = Service(executable_path="/usr/local/bin/chromedriver")
+            print(f"[{username}] 시스템 ChromeDriver 사용")
+        except Exception as e2:
+            print(f"[{username}] 시스템 ChromeDriver도 실패: {e2}")
+            raise Exception("ChromeDriver를 찾을 수 없습니다.")
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
@@ -79,53 +90,160 @@ def run_crawler(username, password, slack_token, slack_channel, excel_file, csv_
         # 1. 로그인
         print(f"[{username}] 로그인 페이지로 이동 중...")
         driver.get("https://web.fuioupay.co.kr/login?returnUrl=/index")
-        time.sleep(3)
-        print(f"[{username}] 로그인 시도...")
+        
+        # 페이지 완전 로딩 대기
+        WebDriverWait(driver, 20).until(
+            lambda driver: driver.execute_script("return document.readyState") == "complete"
+        )
+        time.sleep(5)  # 추가 안정화 시간
+        
+        print(f"[{username}] 페이지 로딩 완료, 로그인 시도...")
         
         # 더 안전한 로그인 방식
+        login_success = False
+        
+        # 방법 1: ID 기반 로그인
         try:
-            # 먼저 일반적인 방식으로 시도
-            username_field = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "username"))
+            print(f"[{username}] 방법 1: ID 기반 로그인 시도...")
+            username_field = WebDriverWait(driver, 15).until(
+                EC.element_to_be_clickable((By.ID, "username"))
             )
-            password_field = driver.find_element(By.ID, "password")
-            login_button = driver.find_element(By.ID, "btn-login")
+            password_field = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.ID, "password"))
+            )
+            login_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.ID, "btn-login"))
+            )
+            
+            # 스크롤하여 요소가 보이도록 함
+            driver.execute_script("arguments[0].scrollIntoView(true);", username_field)
+            time.sleep(1)
             
             username_field.clear()
+            time.sleep(0.5)
             username_field.send_keys(username)
+            time.sleep(0.5)
+            
             password_field.clear()
+            time.sleep(0.5)
             password_field.send_keys(password)
-            login_button.click()
+            time.sleep(0.5)
+            
+            # JavaScript로 클릭 시도
+            driver.execute_script("arguments[0].click();", login_button)
+            login_success = True
+            print(f"[{username}] 방법 1 성공")
             
         except Exception as e:
-            print(f"[{username}] 일반 로그인 방식 실패, 대안 방식 시도: {e}")
+            print(f"[{username}] 방법 1 실패: {e}")
+            
+        # 방법 2: name 속성 기반 로그인
+        if not login_success:
             try:
-                # 대안 1: name 속성으로 찾기
-                username_field = driver.find_element(By.CSS_SELECTOR, "input[name='username']")
-                password_field = driver.find_element(By.CSS_SELECTOR, "input[name='password']")
-                login_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
+                print(f"[{username}] 방법 2: name 속성 기반 로그인 시도...")
+                username_field = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='username']"))
+                )
+                password_field = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='password']"))
+                )
+                login_button = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))
+                )
+                
+                # 스크롤하여 요소가 보이도록 함
+                driver.execute_script("arguments[0].scrollIntoView(true);", username_field)
+                time.sleep(1)
                 
                 username_field.clear()
+                time.sleep(0.5)
                 username_field.send_keys(username)
+                time.sleep(0.5)
+                
                 password_field.clear()
+                time.sleep(0.5)
                 password_field.send_keys(password)
-                login_button.click()
+                time.sleep(0.5)
+                
+                # JavaScript로 클릭 시도
+                driver.execute_script("arguments[0].click();", login_button)
+                login_success = True
+                print(f"[{username}] 방법 2 성공")
                 
             except Exception as e2:
-                print(f"[{username}] 대안 1 실패, JavaScript 방식 시도: {e2}")
-                # 대안 2: JavaScript 실행
-                driver.execute_script(f'document.querySelector("input[name=\'username\']").value = "{username}";')
-                driver.execute_script(f'document.querySelector("input[name=\'password\']").value = "{password}";')
-                driver.execute_script('document.querySelector("button[type=\'submit\']").click();')
+                print(f"[{username}] 방법 2 실패: {e2}")
+                
+        # 방법 3: JavaScript 직접 실행 (더 안전한 방식)
+        if not login_success:
+            try:
+                print(f"[{username}] 방법 3: JavaScript 직접 실행 시도...")
+                
+                # 요소 존재 여부 먼저 확인
+                username_exists = driver.execute_script("""
+                    var usernameInput = document.querySelector("input[name='username']") || document.querySelector("#username");
+                    return usernameInput !== null;
+                """)
+                
+                password_exists = driver.execute_script("""
+                    var passwordInput = document.querySelector("input[name='password']") || document.querySelector("#password");
+                    return passwordInput !== null;
+                """)
+                
+                button_exists = driver.execute_script("""
+                    var loginBtn = document.querySelector("button[type='submit']") || document.querySelector("#btn-login");
+                    return loginBtn !== null;
+                """)
+                
+                if username_exists and password_exists and button_exists:
+                    # 안전한 JavaScript 실행
+                    driver.execute_script(f"""
+                        var usernameInput = document.querySelector("input[name='username']") || document.querySelector("#username");
+                        var passwordInput = document.querySelector("input[name='password']") || document.querySelector("#password");
+                        var loginBtn = document.querySelector("button[type='submit']") || document.querySelector("#btn-login");
+                        
+                        if (usernameInput && passwordInput && loginBtn) {{
+                            usernameInput.value = "{username}";
+                            passwordInput.value = "{password}";
+                            loginBtn.click();
+                        }}
+                    """)
+                    login_success = True
+                    print(f"[{username}] 방법 3 성공")
+                else:
+                    print(f"[{username}] 방법 3 실패: 필수 요소 없음 (username: {username_exists}, password: {password_exists}, button: {button_exists})")
+                    
+            except Exception as e3:
+                print(f"[{username}] 방법 3 실패: {e3}")
+                
+        if not login_success:
+            # 디버깅용 스크린샷 저장
+            driver.save_screenshot(f"login_debug_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
+            raise Exception("모든 로그인 방식이 실패했습니다.")
         
-        time.sleep(5)
+        # 로그인 성공 확인
+        WebDriverWait(driver, 10).until(
+            lambda driver: "login" not in driver.current_url
+        )
+        time.sleep(3)
+        
         if "login" in driver.current_url:
+            driver.save_screenshot(f"login_failed_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
             raise Exception("로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.")
+        
+        print(f"[{username}] 로그인 성공 확인됨")
+        
         # 2. 계약 페이지로 이동
         print(f"[{username}] 계약 페이지로 이동 중...")
         driver.get("https://web.fuioupay.co.kr/agent/dianping/contracts")
-        time.sleep(5)
+        
+        # 페이지 완전 로딩 대기
+        WebDriverWait(driver, 20).until(
+            lambda driver: driver.execute_script("return document.readyState") == "complete"
+        )
+        time.sleep(5)  # 추가 안정화 시간
+        
         if "contracts" not in driver.current_url:
+            driver.save_screenshot(f"contracts_failed_{username}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png")
             raise Exception(f"계약 페이지로 이동하지 못했습니다. 현재 URL: {driver.current_url}")
         print(f"[{username}] 계약 페이지 접속 완료, 데이터 추출 시작...")
         # 3. 전체 페이지 수 확인
